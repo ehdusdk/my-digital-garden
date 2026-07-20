@@ -102,3 +102,8 @@
 
 ## 강북삼성 예건 수치값 이슈 내용 도식화
 1. ![Pasted image 20260720150705.png](/img/user/Pasted%20image%2020260720150705.png)
+
+2. 측정결과 다수 상황에서 매칭시 상황 도식
+3. ![Pasted image 20260720152046.png](/img/user/Pasted%20image%2020260720152046.png)
+4. 기존 정상동작하는 로직 도식화
+5. ![Pasted image 20260720152108.png](/img/user/Pasted%20image%2020260720152108.png)
