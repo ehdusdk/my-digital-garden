@@ -190,9 +190,10 @@ strValue = WRXml::GetAttributeText2(pNode, _T("value"));
 
 ## 11. 향후 확인 사항
 
-- [ ] 병동 XSL `Pluse` → `Pulse` 수정 적용
-- [ ] 외래 XSL `Pluse` → `Pulse` 수정 적용
-- [ ] DisplayScript XSL 3곳 수정
-- [ ] PageStep4.xml / PageStep5.xml 수정
-- [ ] DB 프로시저 `PC_DMBEST_UPDATE` 내부에서 `InPulse` 처리 로직 확인 (DB 담당자)
-- [ ] `AND_TM2655P.cpp` `return TRUE` 버그 수정 검토
+- [x] 병동 XSL `Pluse` → `Pulse` 수정 적용
+- [x] 외래 XSL `Pluse` → `Pulse` 수정 적용
+- [x] DisplayScript XSL 3곳 수정
+- [x] PageStep4.xml / PageStep5.xml 수정
+- [x] DB 프로시저 `PC_DMBEST_UPDATE` 내부에서 `InPulse` 처리 로직 확인 (DB 담당자)
+      혈압 2개 값만 EMR 전송 되고 맥박은 0이였음
+- [x] `AND_TM2655P.cpp` `return TRUE` 버그 수정 검토
