@@ -2,7 +2,7 @@ import { next } from '@vercel/functions';
 
 // 홈페이지(/)만 잠급니다. 전체 사이트를 잠그려면 matcher를 '/(.*)' 로 바꾸세요.
 export const config = {
-  matcher: '/',
+  matcher: '/(.*)',
 };
 
 export default function middleware(request) {
