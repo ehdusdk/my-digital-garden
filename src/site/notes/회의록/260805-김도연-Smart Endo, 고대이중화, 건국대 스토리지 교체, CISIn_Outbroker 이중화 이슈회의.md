@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"//260805-smart-endo-cis-in-outbroker/","title":"CISRemover 프로젝트 구조 및 코드 상세 분석 보고서","tags":["회의록","SmartEndo","고대이중화","건국대","CISInbroker","CISOutbroker"],"dg-note-properties":{"tags":["회의록","SmartEndo","고대이중화","건국대","CISInbroker","CISOutbroker"],"date":"2026-08-05","participants":["안충일 팀장님","문대식 선임","이찬욱 님","김도연 책임"],"title":"CISRemover 프로젝트 구조 및 코드 상세 분석 보고서"}}
+{"dg-publish":true,"dg-permalink":"260805-dykim-kumc-duplex-issue-kunkuc-storage-issus-smartendo","permalink":"/260805-dykim-kumc-duplex-issue-kunkuc-storage-issus-smartendo/","title":"CISRemover 프로젝트 구조 및 코드 상세 분석 보고서","tags":["회의록","SmartEndo","고대이중화","건국대","CISInbroker","CISOutbroker"],"dg-note-properties":{"tags":["회의록","SmartEndo","고대이중화","건국대","CISInbroker","CISOutbroker"],"date":"2026-08-05","participants":["안충일 팀장님","문대식 선임","이찬욱 님","김도연 책임"],"title":"CISRemover 프로젝트 구조 및 코드 상세 분석 보고서"}}
 ---
 
 
