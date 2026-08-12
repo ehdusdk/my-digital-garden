@@ -154,3 +154,8 @@ CDW Part, IsCDWUploader() is True
 | `CISLib\trunk\Include\CISNDFile.h` | `HasNumericItem()` 추가 |
 | `CISLib\trunk\Include\CISNDMeasurement.h` | `GetChildCount()` 접근자 추가 |
 | `CISLib\trunk\Include\CISNumericData.h` | `GetCount()` const 수정 |
+
+## 관련 이슈
+
+- [[260812-강북삼성화성건진-혈압,청력수치값 이슈\|강북삼성 화성건진 혈압·청력 수치값 이슈]]
+- [[260812-강북화성-LocalCDWExporter수치값 이슈\|2026-08-12 통합 분석]]
