@@ -1,8 +1,13 @@
 ---
-{"dg-publish":true,"permalink":"//local-cdw-exporter-cdw/","tags":["이슈","강북삼성","CIS분석","LocalCDWExporter","CDW"],"dg-note-properties":{"tags":["이슈","강북삼성","CIS분석","LocalCDWExporter","CDW"]}}
+{"dg-publish":true,"dg-permalink":"kbsmc-localcdwexporter-numericvalue-upload-issue-analysis","permalink":"/kbsmc-localcdwexporter-numericvalue-upload-issue-analysis/","tags":["이슈","강북삼성","CIS분석","LocalCDWExporter","CDW"],"dg-note-properties":{"tags":["이슈","강북삼성","CIS분석","LocalCDWExporter","CDW"]}}
 ---
 
 > [[HIE팀 이슈\|← 이슈 목록으로]]
+
+## 관련 이슈
+
+- [[260812-강북삼성화성건진-혈압,청력수치값 이슈\|강북삼성 화성건진 혈압·청력 수치값 이슈]]
+- [[260812-강북화성-LocalCDWExporter수치값 이슈\|2026-08-12 통합 분석]]
 
 ---
 
