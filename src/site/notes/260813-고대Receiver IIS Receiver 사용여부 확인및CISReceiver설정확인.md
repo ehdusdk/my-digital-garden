@@ -5,6 +5,7 @@
 
 #IISReceiver #사용유무
 
+[[HIE팀 이슈\|HIE팀 이슈]]
 ## IIS Receiver 사용 여부 확인사항 & CIS Receiver 설정내용 확인{안암, 구로, 안산}
 1. 안암
 	1. 1호기
