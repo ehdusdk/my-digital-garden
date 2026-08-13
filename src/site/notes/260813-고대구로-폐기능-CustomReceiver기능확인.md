@@ -5,10 +5,35 @@
 
 #고대구로 #CustomReceiver #폐기능추가파라미터 #테스트 
 
+> [!info] 상세 분석 노트
+> 소스, 로그, Receiver 설정 XML 및 Storage Client 동작을 대조한 상세 검토 내용은 [[260813-고대구로-폐기능-CustomReceiver 검토\|260813-고대구로-폐기능-CustomReceiver 검토]] 참고.
+
+## 분석 반영 업데이트 (2026-08-13)
+1. 첨부 Receiver 설정은 **Vendor `CSV` / Modality `CSV(NumericOnly)` / Type `Polling`**으로 확인됨
+	1. Receiver XML: `Vendor id="1000"`, `Modality id="1"`, `Type id="8"`
+	2. `KUMC-VMAX`는 Receiver 이름 및 Interface Code이며 VYNTUS Modality를 의미하지 않음
+2. `Create Image`가 체크되어도 실제 JPG가 생성되지 않는 원인을 소스에서 확인함
+	1. 수치 전용 Parser의 Image 생성 함수가 실제 생성 없이 `TRUE`를 반환함
+	2. 따라서 로그의 `Create JPG ... Succeed`는 실제 파일 생성 성공을 보장하지 않는 오해성 로그임
+	3. 결과 인터페이스 XML도 `Instance type="J"`이지만 `FilePath`는 원본 `.txt`를 가리킴
+3. Storage Client 사용 시 지정된 Volume ID에 **인터페이스 결과 XML**이 업로드되는 구조는 정상임
+	1. Volume ID는 로컬 경로가 아니라 Storage Server의 논리 볼륨 번호임
+	2. MapFile 또는 Receiver 설정 XML 자체가 Volume으로 업로드되는 것은 아님
+4. 현재 MapFile 설정은 잘못된 것으로 확인됨
+	1. MapFile이 Receiver 설정 XML 자신을 가리키고 있음
+	2. Receiver 설정 XML 루트는 `INFINITT_CIS_RECEIVER`이며 MapFile 요구 루트 `CSV_DATA_MAP`과 다름
+	3. 정상 MapFile은 일반적으로 `Config\Receiver\*.xml`에 위치해야 함
+	4. 경로 수정 전 Extract Data의 `Setting`에서 저장하면 Receiver 설정 XML을 Map 형식으로 덮어쓸 위험이 있음
+5. 현재 출력 XML은 폐기능 수치 177개를 포함하지만 검사일이 `1899-12-30`이고 이름·성별 등이 비어 있어 데이터 품질 검증이 추가로 필요함
+
 ## 결론
-1. CustomReceiver 동작 테스트 완료 
-2. 기존 문서 상에 CustomReceiver 동작 workflow 내용 확인 함 
-3. 폐기능 관련 추가 파라미터 연동 관련 내용이 뭔지 확인 및 개발 진행필요!
+1. CustomReceiver 동작 테스트 진행 
+2. 기존 문서 상에 CustomReceiver 동작 workflow 내용 확인 함
+3. 기존 받은 CustomReceiver 설정 ( Extract Data - MapFile 설정 잘못되어 있음)
+	1. 관련 정상 MapFile 설정후 동작 확인 필요 함
+4. 폐기능 관련 추가 파라미터 연동 관련 내용이 뭔지 확인 및 개발 진행필요!
+	1. 폐기능 관련  CustomReceiver 가 아닌 CISReceiver 연동하여 구동하는데 폐기능 관련 기능추가가 되어야 하는지 확인 필요 !
+	2. (이전 workflow 상에 CustomReceiver가 아닌 CISReceiver workflow가 존재하며 폐기능검사실에 대한 처리가 고대구로에 파라미터만 추가하는것인지 안암, 안산에도 해당되는 것인지 확인 필요 함!)
 
 ## 결과
 1. CustomReceiver Input 수치값은  단 한개만 존재하여 그것으로만 테스트 수행 함 
