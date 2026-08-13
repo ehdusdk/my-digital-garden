@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/260813-receiver-iis-receiver-cis-receiver/","dg-note-properties":{}}
+{"dg-publish":true,"dg-permalink":"260813-kumc-receiver_config_check_iis-receiver_check","permalink":"/260813-kumc-receiver_config_check_iis-receiver_check/","dg-note-properties":{}}
 ---
 
 
