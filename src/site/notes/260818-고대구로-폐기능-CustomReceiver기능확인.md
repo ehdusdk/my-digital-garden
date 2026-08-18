@@ -4,6 +4,7 @@
 
 #CustomReceiver #interfacebroker #ExtraData #CVSParser #연동샘플 #연동항목 
 
+[[260813-고대구로-폐기능-CustomReceiver기능확인\|260813-고대구로-폐기능-CustomReceiver기능확인]]
 ## 결론
 1. customReceiver 고대 구로 설정이 제대로 인지 재 확인이 필요하다
 2. customReceiver 생성한 XML 파일을 InterfaceBroker에서 API통해 수치값 관련 연동하는 것 같다.
