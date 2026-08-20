@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/260818-cis-receiver-vs-cis-receiver/","tags":["부천성모","CISReceiver","TC-70","FilePolling2","XML설정","버전호환"],"dg-note-properties":{"tags":["부천성모","CISReceiver","TC-70","FilePolling2","XML설정","버전호환"],"date":"2026-08-18"}}
+{"dg-publish":true,"dg-permalink":"260818-bucheon-cmc-cisreceiver-config-compare-contents","permalink":"/260818-bucheon-cmc-cisreceiver-config-compare-contents/","tags":["부천성모","CISReceiver","TC-70","FilePolling2","XML설정","버전호환"],"dg-note-properties":{"tags":["부천성모","CISReceiver","TC-70","FilePolling2","XML설정","버전호환"],"date":"2026-08-18"}}
 ---
 
 
