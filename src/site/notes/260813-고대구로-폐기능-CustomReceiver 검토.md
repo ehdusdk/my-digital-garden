@@ -1,5 +1,5 @@
 ---
-{"dg-publish":true,"permalink":"/260813-custom-receiver/","dg-note-properties":{"permalink":"/260813-custom-receiver-review/"}}
+{"dg-publish":true,"permalink":"/260813-custom-receiver-review/","dg-note-properties":{"permalink":"/260813-custom-receiver-review/"}}
 ---
 
 
