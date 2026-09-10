@@ -141,40 +141,11 @@ SVG 경로는 필립스 SVG 렌더링 결과(픽셀)를 역산해 샘플을 만�
 
 ### A안 — `m_nBaselineOffset` 채우기 ★ 권장
 
-렌더러는 이미 리드별 기저선 오프셋 필드를 지원합니다.
+> 상세 구현은 **부록 A** 참고. 여기서는 요지만 적습니다.
 
-```cpp
-// CISREOBJ_EcgPage.cpp 619행
-pPTs[nPTPos].Y = rStartY + ((rBaseline - (REAL)sMinVal) * rRatioY);
-//                           ^^^^^^^^^ = pREWave->m_nBaselineOffset, 원시 샘플과 같은 LSB 단위
-```
+렌더러는 이미 리드별 기저선 오프셋 필드를 지원합니다. `m_nBaselineOffset` 에 **리드별 중앙값(LSB 단위)** 을 넣으면 샘플 데이터를 하나도 건드리지 않고 화면만 중앙 정렬됩니다. 출력 XML `<BaselineOffset>` 에도 기록되어 하류 뷰어가 활용할 수 있고, DICOM 내보내기는 이 값을 쓰지 않으므로(하드코딩 `"0"`) 부작용도 없습니다.
 
-즉 **`m_nBaselineOffset` 에 리드별 중앙값(LSB)을 넣으면 샘플 데이터를 하나도 건드리지 않고 화면만 중앙 정렬**됩니다. 출력 XML의 `<BaselineOffset>` 에도 기록되어 하류 뷰어도 활용할 수 있습니다.
-
-`ConvertWave()` 의 리드 복사 루프 직후(페이싱 보정 블록 근처)에 추가:
-
-```cpp
-// [Add] 표시용 기저선 오프셋 기록 — 샘플 데이터는 원본 그대로 유지
-//   USB(hipass 0.02Hz) 원본은 DC 성분이 거의 남아 있어 그대로 그리면 리드가 화면을 벗어난다.
-//   렌더러가 Y = (m_nBaselineOffset - sample) * ratio 로 쓰므로 중앙값을 넣으면 중앙 정렬된다.
-for(i = 0; i < nLeadCnt; i++)
-{
-    pREWave = ECGOut.m_WaveInfo.GetWave(aLead[i]);
-    if(pREWave == NULL) continue;
-    PSHORT p = pREWave->GetWaveBuffer();
-    int n = pREWave->GetSampleCount();
-    if(p == NULL || n <= 0) continue;
-
-    // 중앙값(정렬 비용이 부담되면 평균으로 대체 가능)
-    CArray<short,short> ar;  ar.SetSize(n);
-    for(int k = 0; k < n; k++) ar[k] = p[k];
-    // ... 정렬 후 ar[n/2] 를 취함 ...
-    pREWave->m_nBaselineOffset = (int)median;
-}
-```
-
-> 중앙값이 평균보다 안전합니다. QRS 같은 큰 편위에 덜 끌립니다.
-> **Network 영향**: 기저선이 이미 ±3 mm 이내라 오프셋이 거의 0 → 사실상 변화 없음. 회귀 위험 낮음.
+임계값(1 mV)을 두면 **Network 출력은 한 픽셀도 바뀌지 않고 USB의 문제 리드만 보정**됩니다.
 
 ### B안 — 파서에서 DC 제거 (샘플 값 자체 수정)
 
@@ -209,3 +180,253 @@ for(i = 0; i < nLeadCnt; i++)
 3. **A안 반영 후 재테스트** — USB 흉부유도가 각 행 중앙에 오는지, Network는 변화 없는지
 4. **페이싱 마커 보정** — `<pacepulse starttime="3000"/>` 삽입 XML로 검증 (여전히 미완)
 5. 옵션 OFF 회차 — `nRealOffset[0]` 확인
+
+---
+
+## 부록 A. `m_nBaselineOffset` 구현 상세 (현재 코드 기준)
+
+기준 파일: `Philips_TRIM3_Parser.cpp` (2026-09-09 07:34 버전), `CISLib\trunk\Source\CISECG\*`
+
+### A-1. `m_nBaselineOffset` 의 정확한 의미 — **µV 가 아니라 LSB**
+
+JPG 리포트를 그리는 `CISREOBJ_EcgPage.cpp` 는 9개 렌더 경로 전부가 동일한 공식을 씁니다.
+
+```cpp
+// 565 / 802 / 1017 / 1087 / 1341 / 1556 / 1626 / 1880 / 1953 행
+rBaseline = (REAL)pREWave->m_nBaselineOffset;
+...
+// 619·621 / 825·827 / 1040·1042 / 1159·1161 / 1364·1366 / 1579·1581 / 1698·1700 / 1903·1905 / 2028 행
+pPTs[nPTPos].Y = rStartY + ((rBaseline - (REAL)pWaveData[nWaveIdx]) * rRatioY);
+//                           ^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^
+//                           같은 항에서 원시 short 샘플과 직접 뺄셈 → 단위가 같다
+```
+
+`rBaseline` 이 `pWaveData[]`(원시 `short` 샘플)와 **바로 뺄셈**되므로 **단위는 원시 샘플(LSB)** 입니다.
+
+- `m_nBaselineOffset = M` 이면 `sample == M` 인 지점이 `Y = rStartY`(행 기준선)에 옵니다
+- 따라서 **리드별 중앙값을 LSB 단위로 그대로 넣으면 중앙 정렬**됩니다
+
+> ⚠️ **함정**: 헤더 주석(`CISREWave.cpp` 82/140/216행)에는 `<BaselineOffset Unit="uV">` 라고 적혀 있지만 **실제 코드는 LSB로 씁니다.**
+> USB는 Amplitude가 1.0 µV/LSB라 두 값이 우연히 같지만, **Network는 5.0 µV/LSB라 5배 차이**가 납니다. 반드시 LSB로 계산하십시오.
+> (예: −580 µV 를 그대로 넣으면 Network에서는 −2,900 µV 만큼 밀립니다)
+
+### A-2. 이 값이 흘러가는 곳 — 부작용 전수 점검
+
+| 소비처 | 위치 | 영향 |
+|---|---|---|
+| **JPG 리포트 렌더링** | `CISREOBJ_EcgPage.cpp` 9곳 | ✅ 의도한 중앙 정렬. 전 경로 공식 동일 |
+| **출력 XML `<BaselineOffset>`** | `CISREWave.cpp` 158행 기록 / 110행 복원 | ✅ 라운드트립 정상 |
+| **DICOM 내보내기** | `CISDicom.cpp` 858행 → `DCM_ChannelBaseline` 에 **`"0"` 하드코딩** | ✅ **영향 없음** |
+| **DICOM 읽기** | `CISDicom.cpp` 1109행 (DICOM → CIS 방향) | ✅ 영향 없음 (반대 방향) |
+| 뷰어 파형 오브젝트 | `CISREOBJ_Wave.cpp` 435~468행 | ⚠️ 아래 참고 |
+
+⚠️ `CISREOBJ_Wave.cpp` 만 부호 분기가 있습니다.
+
+```cpp
+if(m_bInvertWave)  Y = rOrgY + ((rOffsetY + (REAL)pWave[i]) * rRatioY);   // 435 / 437 / 460
+else               Y = rOrgY + ((rOffsetY - (REAL)pWave[i]) * rRatioY);   // 446 / 448 / 468
+```
+
+반전 표시(`m_bInvertWave = TRUE`)에서는 오프셋 부호가 반대여야 맞는데 라이브러리가 대칭적이지 않습니다. **기본 경로(FALSE)와 JPG 리포트는 문제 없습니다.** 반전 표시를 쓰는 화면이 있다면 그 화면에서만 2배로 어긋납니다. 지금까지 `m_nBaselineOffset` 이 항상 0이라 드러나지 않았던 기존 비대칭입니다.
+
+### A-3. 삽입 위치 — 복사 루프 안 (1495~1510행)
+
+별도 루프를 추가할 필요 없이 **기존 리드 복사 루프 안에서 바로** 계산하는 것이 간결합니다. 복사가 끝난 직후의 `pWaveData` 가 최종 데이터이기 때문입니다.
+
+```cpp
+1495        for(i = 0; i < nLeadCnt; i++)
+1496        {
+1497            Lead		= aLead[i];
+1498            pREWave		= ECGOut.m_WaveInfo.GetWave(Lead);
+1499            if(pREWave == NULL) continue;
+1500            pWaveData	= pREWave->GetWaveBuffer();
+1501            if(pWaveData == NULL) continue;
+1502
+1503            int nDstCount = pREWave->GetSampleCount();
+1504            int nAvail    = nSampleCnt - nLeadStart;
+1505            int nCopy     = (nAvail < nDstCount) ? nAvail : nDstCount;
+1506
+1507            if(nCopy > 0)
+1508                memcpy(pWaveData, &pReal[(int)i * nSampleCnt + nLeadStart], sizeof(short) * nCopy);
+     ┌──────────────────────── 여기에 삽입 ────────────────────────┐
+     // 26/09/10 [Add] 표시용 기저선 오프셋 — 샘플 데이터는 원본 그대로 둔다.
+     //   USB(hipass 0.02Hz, τ≈8초)는 10초 기록에서 DC가 거의 안 빠져 그대로 그리면
+     //   리드가 행을 벗어난다. 렌더러가 Y = (m_nBaselineOffset - sample) * ratio 로
+     //   쓰므로 중앙값(LSB)을 넣으면 원본 훼손 없이 중앙 정렬된다.
+     //   임계값 미만(1 mV)은 건드리지 않아 Network 출력은 종전과 완전히 동일하게 유지된다.
+     if(nCopy > 0 && dRefAmplitude > 0.0)
+     {
+         int nMedian    = GetWaveMedian(pWaveData, nCopy);            // LSB
+         int nThreshold = (int)(1000.0 / dRefAmplitude);              // 1 mV → LSB
+         pREWave->m_nBaselineOffset = (abs(nMedian) > nThreshold) ? nMedian : 0;
+     }
+     └──────────────────────────────────────────────────────────────┘
+1509            // 나머지는 AllocStandard12Lead 의 FillZero 로 0 유지
+1510        }
+```
+
+`dRefAmplitude` 는 `ConvertWave()` 의 함수 파라미터라 이 지점에서 바로 쓸 수 있습니다(1354행 `AllocStandard12Lead` 에서도 쓰고 있음).
+
+### A-4. 헬퍼 함수 — 파일 상단에 추가
+
+`Philips_TRIM3_Parser.cpp` 의 `IMPLEMENT_DYNCREATE` 아래(메시지맵 앞) 정도에 배치합니다. **`CompareShort` 를 `GetWaveMedian` 보다 먼저** 두어야 합니다.
+
+```cpp
+// 26/09/10 [Add] 표시용 기저선 계산 헬퍼
+static int CompareShort(const void* a, const void* b)
+{
+    short x = *(const short*)a;
+    short y = *(const short*)b;
+    return (x < y) ? -1 : ((x > y) ? 1 : 0);
+}
+
+// 리드 1개의 중앙값(LSB)을 구한다.
+// 평균이 아니라 중앙값을 쓰는 이유: QRS 같은 큰 편위에 덜 끌린다.
+static int GetWaveMedian(const short* p, int n)
+{
+    if(p == NULL || n <= 0) return 0;
+
+    CArray<short, short> ar;
+    ar.SetSize(n);
+    for(int k = 0; k < n; k++)
+        ar[k] = p[k];
+
+    qsort(ar.GetData(), n, sizeof(short), CompareShort);
+    return (int)ar[n / 2];
+}
+```
+
+성능은 12리드 × 10,000샘플 qsort 로 수 밀리초 수준입니다. 파싱 전체 시간(약 1초)에 비하면 무시할 수준입니다.
+
+### A-5. 임계값 1 mV 의 근거 — 실측
+
+02914820 산출물에서 **전체 10초 버퍼 기준 중앙값**을 실측했습니다. (Network 임계 200 LSB = 1 mV ÷ 5.0, USB 임계 1000 LSB = 1 mV ÷ 1.0)
+
+| 리드 | NET LSB | NET µV | NET 보정 | USB LSB | USB µV | USB 보정 |
+|---|---|---|---|---|---|---|
+| I | −1 | −5 | − | −120 | −120 | − |
+| II | −17 | −85 | − | −10 | −10 | − |
+| III | −22 | −110 | − | 132 | 132 | − |
+| aVR | 10 | 50 | − | 76 | 76 | − |
+| aVL | 12 | 60 | − | −116 | −116 | − |
+| aVF | −19 | −95 | − | 72 | 72 | − |
+| **V1** | −22 | −110 | − | **−2,080** | −2,080 | **적용** |
+| **V2** | 138 | 690 | − | **3,069** | 3,069 | **적용** |
+| V3 | 5 | 25 | − | −57 | −57 | − |
+| **V4** | −43 | −215 | − | **−1,761** | −1,761 | **적용** |
+| **V5** | 5 | 25 | − | **−1,435** | −1,435 | **적용** |
+| **V6** | −116 | −580 | − | **−4,253** | −4,253 | **적용** |
+
+- **Network 최대 |중앙값| = 690 µV** → 전 리드 임계 미달 → `m_nBaselineOffset = 0` → **출력 완전 무변화** ✅
+- **USB 보정 대상 최소 |중앙값| = 1,435 µV** → 문제 리드 5개만 정확히 걸림 ✅
+- USB 나머지 7개 리드는 최대 132 µV(≈1.3 mm)라 보정 불필요 ✅
+
+임계값은 690 µV ~ 1,435 µV 사이 어디든 성립합니다. **1 mV(= 10 mm/mV 기준 화면 10 mm)** 가 기준으로 설명하기 좋아 이 값을 권합니다.
+
+> 임계값 없이 무조건 적용하면 Network의 V2(690 µV ≈ 6.9 mm) / V6(−580 µV ≈ 5.8 mm)도 이동합니다. 그 자체는 개선이지만 **"Network 픽셀 동일" 회귀 기준은 깨지므로**, 회귀 부담을 없애려면 임계값을 두십시오.
+
+### A-6. 검증 방법
+
+1. **Network 회귀**: 수정 전/후 산출 XML의 `<BaselineOffset>` 이 12리드 전부 `0` 인지 확인 → JPG도 바이트 단위로 동일해야 함
+2. **USB 보정**: 산출 XML에서 V1/V2/V4/V5/V6 의 `<BaselineOffset>` 이 각각 −2080 / 3069 / −1761 / −1435 / −4253 근처 값인지 확인
+3. **JPG 육안**: USB 이미지에서 V4·V5·V6 가 각 행 중앙에 오고, V2 가 위로 튀지 않는지
+4. **`<Data>` 불변**: 샘플 값은 수정 전과 **완전히 동일**해야 함 (원본 훼손 없음 확인)
+
+### A-7. 이 방식의 한계
+
+`m_nBaselineOffset` 은 리드당 **상수 하나**이므로 **DC 오프셋만** 잡습니다. 10초 동안 기저선이 서서히 흔들리는 성분(baseline wander)은 그대로 남습니다.
+
+- 이번 02914820 케이스는 DC가 지배적이라 이것만으로 충분합니다
+- 기저선 흔들림까지 펴야 한다면 별도의 고역통과 필터가 필요하고, 그건 샘플 값을 바꾸는 B안 영역입니다
+
+---
+
+## 부록 B. A안 반영 후 검증 결과 (2026-09-10 16:29)
+
+- 산출물: `20260910162928_064229F8_g7w1qk48_00000001_0001` (NET) / `20260910162933_06480630_l3b9ia5j_00000002_0001` (USB)
+- 직전(보정 전) 회차: `20260910142121` / `20260910142131`
+
+### B-1. 결론
+
+**A안이 설계대로 정확히 동작합니다.** 예측했던 값이 한 자리도 다르지 않게 나왔고, Network는 완전 무변화, USB 화면 이탈은 **37.8 mm → 4.8 mm** 로 줄었습니다.
+
+### B-2. `<BaselineOffset>` 실측 vs 부록 A-5 예측
+
+| 리드 | A-5 예측(LSB) | **실제 출력** | 일치 |
+|---|---|---|---|
+| NET 전 12리드 | 0 (전부 임계 미달) | **0** × 12 | ✅ |
+| USB I·II·III·aVR·aVL·aVF·V3 | 0 (임계 미달) | **0** | ✅ |
+| USB **V1** | −2,080 | **−2080** | ✅ |
+| USB **V2** | 3,069 | **3069** | ✅ |
+| USB **V4** | −1,761 | **−1761** | ✅ |
+| USB **V5** | −1,435 | **−1435** | ✅ |
+| USB **V6** | −4,253 | **−4253** | ✅ |
+
+임계값 1 mV 설계가 의도대로 작동해 **Network는 한 리드도 건드리지 않았고**, USB는 문제 리드 5개만 정확히 보정했습니다.
+
+### B-3. 원본 훼손 없음 — 샘플 값 완전 동일
+
+| | 보정 전 회차 대비 12리드 `<Data>` | 최대 차이 |
+|---|---|---|
+| NET | **완전 동일** | 0 |
+| USB | **완전 동일** | 0 |
+
+소스 XLI 원본과의 일치도도 그대로입니다.
+
+| | 오프셋 | corr 최소 | corr 평균 |
+|---|---|---|---|
+| NET | 500샘플 (1초) | 0.999890 | 0.999980 |
+| USB | 1,000샘플 (1초) | 0.999996 | 0.999999 |
+
+**표시용 메타(`<BaselineOffset>`)만 채워졌고 파형 데이터는 손대지 않았습니다.** A안의 핵심 전제가 실증되었습니다.
+
+### B-4. 화면 이탈량 — 보정 전후
+
+각 리드를 자기 표시 구간에서 잰 유효 이탈량(= 표시구간 중앙값 − BaselineOffset), 10 mm/mV 기준:
+
+| 리드 | 표시 구간 | NET (변화 없음) | **USB 보정 전** | **USB 보정 후** |
+|---|---|---|---|---|
+| I | 0~2.5s | −1.1 mm | −2.2 mm | −2.2 mm |
+| II | 0~2.5s | 0.5 | 0.7 | 0.7 |
+| III | 0~2.5s | 1.6 | 3.0 | 3.0 |
+| aVR | 2.5~5s | −0.1 | −0.0 | −0.0 |
+| aVL | 2.5~5s | −0.3 | −2.2 | −2.2 |
+| aVF | 2.5~5s | 0.5 | 2.4 | 2.4 |
+| **V1** | 5~7.5s | −0.2 | **−20.0** | **+0.8** |
+| **V2** | 5~7.5s | 3.2 | **+30.2** | **−0.5** |
+| V3 | 5~7.5s | 0.6 | −0.2 | −0.2 |
+| **V4** | 7.5~10s | −0.8 | **−17.1** | **+0.6** |
+| **V5** | 7.5~10s | 1.6 | **−10.9** | **+3.4** |
+| **V6** | 7.5~10s | 0.8 | **−37.8** | **+4.8** |
+| **최대** | | **3.2 mm** | **37.8 mm** | **4.8 mm** |
+
+- USB 최대 이탈 **37.8 mm → 4.8 mm (87% 감소)**
+- 흉부유도 5개 전부 5 mm 이내 → 각 행 안에 정상 배치
+- 이제 USB 최대(4.8 mm)가 Network 최대(3.2 mm)와 같은 수준
+
+### B-5. 잔여 3.4 / 4.8 mm 에 대하여
+
+V5 3.4 mm, V6 4.8 mm 가 남았습니다. 이는 **부록 A-7 에서 예고한 한계 그대로**입니다.
+
+- `m_nBaselineOffset` 은 리드당 **상수 하나**라 전체 10초 버퍼의 중앙값을 씁니다
+- 실제 표시 구간은 리드마다 다른 2.5초이고, 그 사이 기저선이 서서히 이동합니다(baseline wander)
+- 그 차이가 V5·V6 에서 300~480 µV 남은 것입니다
+
+**실용상 문제 없습니다** — 5 mm 이내면 행 안에 충분히 들어오고, Network 의 V2(3.2 mm)와 같은 수준입니다. 더 펴려면 고역통과 필터가 필요하고 그건 샘플 값을 바꾸는 B안 영역입니다.
+
+### B-6. 기타 확인
+
+| 항목 | 결과 |
+|---|---|
+| 마지막-10초 옵션 | ✅ 양쪽 1,000 ms 오프셋 유지 |
+| StudyTime | ✅ 양쪽 10:23:36 (동일 검사) |
+| 측정값 (HR/RR/PR/QRSD/QT) | ✅ 75 / 796 / 130 / 83 / 360 양쪽 동일 |
+| 샘플 수 | ✅ 5,000 / 10,000 |
+| `<PacingPulse/>` | 비어 있음 → **페이싱 마커 보정 여전히 미검증** |
+
+### B-7. 남은 과제
+
+1. **페이싱 마커 보정 검증** — 테스트 XML 에 `<pacepulse starttime="3000"/>` 삽입 후 옵션 ON 으로 실행. 1000 Hz 기준 샘플 2000 위치로 이동하는지 확인 (유일하게 남은 미검증 항목)
+2. 옵션 OFF 회차 — `nRealOffset[0]`, 0~10초 구간 확인
+3. 10초 미만 기록 — A-5 clamp 동작 확인
+4. (선택) 09-09 회차가 SVG 경로였는지 로그 확인 — A안으로 해결되어 우선순위는 낮아짐
