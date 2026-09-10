@@ -3,6 +3,14 @@
 ---
 
 
+## 2026-08-20 CISReceiver 선행단 변경 및 영향
+
+- 변경 흐름·순서도: [[260820-강북삼성화성건진수치값이상관련CISReceiver변경내용정리\|260820-강북삼성화성건진수치값이상관련CISReceiver변경내용정리]]
+- LocalCDWExporter가 `MatchedInfo_*.xml`의 `CDWGUID`를 읽지 못한 현상은 CISReceiver `CloningEx()`의 Output XML → CDW GUID 폴더 복사 실패와 연결된다.
+- `CloningEx()`는 현재 원본 파일 존재 확인, `Result`, `GetLastError`, 오류 문자열을 기록하며 3회 복사한다.
+- 재시도 간격은 현재 구현상 400ms이며, 모두 실패하면 CDW Numeric GUID/File 할당 전에 `FALSE`를 반환한다.
+- 호출부의 `ResetCDW()` 때문에 CISNEIS가 만드는 MatchedInfo에 `CDWGUID`가 들어가지 못하고, 이후 LocalCDWExporter 조회도 실패할 수 있다.
+
 # 260812-강북화성-LocalCDWExporter수치값 이슈
 
 ## 1. 문서 목적
@@ -389,4 +397,3 @@ RS232Tester(COM3) ── null modem / virtual pair ── CISReceiver(COM4)
 - 관련 Obsidian 노트: [[CISReceiver-CISNEIS_Interface_XML_전달_처리_흐름\|CISReceiver-CISNEIS_Interface_XML_전달_처리_흐름]]
 - 관련 Obsidian 노트: [[강북삼성-LocalCDWExporter 수치값 누락 및 잘못되는 현상 건\|강북삼성-LocalCDWExporter 수치값 누락 및 잘못되는 현상 건]]
 - 관련 Obsidian 노트: [[260812-강북삼성화성건진-혈압,청력수치값 이슈\|260812-강북삼성화성건진-혈압,청력수치값 이슈]]
-

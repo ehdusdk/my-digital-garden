@@ -2,6 +2,12 @@
 {"dg-publish":true,"permalink":"/local-cdw-exporter/","dg-note-properties":{}}
 ---
 
+
+## 2026-08-20 관련 CISReceiver 변경
+
+- 상세 분석 및 순서도: [[260820-강북삼성화성건진수치값이상관련CISReceiver변경내용정리\|260820-강북삼성화성건진수치값이상관련CISReceiver변경내용정리]]
+- CDWGUID 누락의 선행 원인으로 확인된 `CloningEx()` 복사 실패에 대해 3회 재시도와 원본 존재·Win32 오류 로그가 추가되었다.
+- 현재 재시도 간격은 400ms이며, 3회 모두 실패하면 기존처럼 CDW 정보가 초기화된다.
 #강북삼성 #LocalCDWExporter #CISNEIS #CISNEISLite
 
 ## 이슈 내용
