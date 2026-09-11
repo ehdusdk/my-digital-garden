@@ -1,8 +1,9 @@
 import { next } from '@vercel/functions';
 
 // 홈페이지(/)만 잠급니다. 전체 사이트를 잠그려면 matcher를 '/(.*)' 로 바꾸세요.
+// 260911 by dykim css 파일도 인증관련 모드 차단되어 문제가 발생함을 AI 내용 확인하고 css 파일 제외한 나머지만 보안에 세팅하도록 변경 // matcher ~~~ 부분
 export const config = {
-  matcher: '/(.*)',
+    matcher: ['/((?!styles/|img/|favicon|apple-touch-icon|manifest).*)'], 
 };
 
 export default function middleware(request) {
